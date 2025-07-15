@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35825.156 d17.13
+VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SEDEMA_REST_API", "SEDEMA_REST_API\SEDEMA_REST_API.csproj", "{DDFA6A60-4BEA-4F61-B135-E311CDA9F8F5}"
 EndProject
@@ -9,6 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementos de la solución",
 	ProjectSection(SolutionItems) = preProject
 		.env = .env
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seguridad", "Seguridad\Seguridad.csproj", "{B743F939-2812-4E73-B3B9-8A904D68B5F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pruebas", "Pruebas\Pruebas.csproj", "{3F56FAD6-ADC5-44B8-9BA0-BEDF1A9B4D7D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +24,14 @@ Global
 		{DDFA6A60-4BEA-4F61-B135-E311CDA9F8F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDFA6A60-4BEA-4F61-B135-E311CDA9F8F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDFA6A60-4BEA-4F61-B135-E311CDA9F8F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B743F939-2812-4E73-B3B9-8A904D68B5F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B743F939-2812-4E73-B3B9-8A904D68B5F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B743F939-2812-4E73-B3B9-8A904D68B5F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B743F939-2812-4E73-B3B9-8A904D68B5F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F56FAD6-ADC5-44B8-9BA0-BEDF1A9B4D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F56FAD6-ADC5-44B8-9BA0-BEDF1A9B4D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F56FAD6-ADC5-44B8-9BA0-BEDF1A9B4D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F56FAD6-ADC5-44B8-9BA0-BEDF1A9B4D7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
