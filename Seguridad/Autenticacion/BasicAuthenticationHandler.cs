@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
-//using SEDEMA_REST_API.BDD;
 using Seguridad.Hashing;
 using Seguridad.Servicios;
 using System.Security.Claims;
@@ -34,40 +32,6 @@ namespace Seguridad.Autenticacion {
             _usuarioValidador = usuarioValidador;
             _logger = loggerFactory.CreateLogger<BasicAuthenticationHandler>();
         }
-        /*
-        public BasicAuthenticationHandler(
-            IOptionsMonitor<AuthenticationSchemeOptions> options,
-            ILoggerFactory logger,
-            UrlEncoder encoder,
-            ISystemClock clock)
-            : base(options, logger, encoder, clock) {
-
-            // Cargar .env solo si no se ha cargado antes
-            try {
-                string baseDir = AppContext.BaseDirectory;
-                string projectRoot = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", ".."));
-                string envPath = Path.Combine(projectRoot, ".env");
-
-                if (File.Exists(envPath)) {
-                    DotNetEnv.Env.Load(envPath);
-                    Console.WriteLine("Archivo Carcgado");
-                }
-            } catch (Exception ex) {
-                ErrorProceso?.Invoke(new ErrorProcesoArgs(
-                    "SEDEMA_REST_API",
-                    nameof(BasicAuthenticationHandler),
-                    this.GetType().Name,
-                    ex.HResult,
-                    ex.Message,
-                    0
-                ));
-                Logger.LogWarning($"No se pudo cargar el archivo .env: {ex.Message}");
-            }
-        }
-        */
-
-
-
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync() {
             if (!Request.Headers.ContainsKey("Authorization"))
@@ -86,7 +50,7 @@ namespace Seguridad.Autenticacion {
                 var ip = Context.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
 
 
-                Console.WriteLine($"Muestro la credencial de pruebas {username}, el password {password} con ip {ip}");
+                //Console.WriteLine($"Muestro la credencial de pruebas {username}, el password {password} con ip {ip}");
 
 
                 lock (_lock) {
@@ -117,7 +81,7 @@ namespace Seguridad.Autenticacion {
 
                 string hash = hashObj?.ToString() ?? "";
 
-                if (hash != password) {
+                if (!HashUtils.ValidarHash(password, hash)) {
                     lock (_lock) {
                         if (_failedAttemptsByIp.ContainsKey(ip))
                             _failedAttemptsByIp[ip]++;
@@ -133,7 +97,9 @@ namespace Seguridad.Autenticacion {
                     return AuthenticateResult.Fail("Usuario o contraseña inválidos.");
                 }
 
-                // Aquí podrías retornar éxito si todo está bien
+
+
+
 
 
                 var claims = new[] {
