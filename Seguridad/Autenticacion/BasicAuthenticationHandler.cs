@@ -43,16 +43,13 @@ namespace Seguridad.Autenticacion {
                 var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(authHeaderValue)).Split(':');
 
                 if (credentials.Length != 2)
-                    return AuthenticateResult.Fail("Invalid Authorization Format");
+                    return AuthenticateResult.Fail("Formato de autorización inválido");
 
                 var username = credentials[0];
-                var password = credentials[1]; 
+                var password = credentials[1];
                 var ip = Context.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
 
-
-                //Console.WriteLine($"Muestro la credencial de pruebas {username}, el password {password} con ip {ip}");
-
-
+                // 1. Validar si la IP está bloqueada
                 lock (_lock) {
                     if (_blockedIps.TryGetValue(ip, out var blockedUntil)) {
                         if (DateTime.UtcNow < blockedUntil) {
@@ -64,24 +61,41 @@ namespace Seguridad.Autenticacion {
                         }
                     }
                 }
+
+                // 2. Obtener credencial y hash
                 var credencialJson = await _usuarioValidador.ObtenerHashPorUsuarioJSONAsync(username);
 
                 if (string.IsNullOrWhiteSpace(credencialJson) || credencialJson == "[]") {
-                    Console.WriteLine("El usuario no existe.");
                     return AuthenticateResult.Fail("Usuario no válido");
                 }
 
-                // Deserializar
                 var lista = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(credencialJson);
-
-                if (lista == null || lista.Count == 0 || !lista[0].TryGetValue("ContraseñaHash", out var hashObj)) {
-                    Console.WriteLine("La credencial está vacía o no tiene campo ContraseñaHash.");
+                if (lista is null || lista.Count == 0) {
                     return AuthenticateResult.Fail("Usuario no válido");
                 }
 
-                string hash = hashObj?.ToString() ?? "";
+                int credencialId = int.Parse(lista[0]["CredencialId"].ToString());
+                string hash = lista[0]["ContraseñaHash"]?.ToString() ?? "";
 
+                // 🔐 VERIFICAMOS PRIMERO SI EL USUARIO YA ESTÁ BLOQUEADO
+                var bloqueoJson = await _usuarioValidador.SpBloqueoUsuarioGetJSON(credencialId);
+                var bloqueos = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(bloqueoJson);
+
+                if (bloqueos?.Count > 0 &&
+                    bloqueos[0].TryGetValue("BloqueadoHasta", out var hastaObj) &&
+                    DateTime.TryParse(hastaObj?.ToString(), out var bloqueadoHasta) &&
+                    bloqueadoHasta > DateTime.Now) {
+
+                    _logger.LogWarning($"Usuario {username} bloqueado hasta {bloqueadoHasta}");
+                    return AuthenticateResult.Fail("Usuario temporalmente bloqueado.");
+                }
+
+
+                // 3. Verificar contraseña
                 if (!HashUtils.ValidarHash(password, hash)) {
+                    await _usuarioValidador.SpBloqueoUsuarioSetAsync(credencialId);
+
+                    // Si no está bloqueado, seguir mostrando credenciales inválidas
                     lock (_lock) {
                         if (_failedAttemptsByIp.ContainsKey(ip))
                             _failedAttemptsByIp[ip]++;
@@ -94,18 +108,15 @@ namespace Seguridad.Autenticacion {
                             Console.WriteLine($"[BasicAuth] IP {ip} bloqueada hasta {bloqueoHasta} UTC");
                         }
                     }
+
                     return AuthenticateResult.Fail("Usuario o contraseña inválidos.");
                 }
 
-
-
-
-
-
+                // 4. Autenticación exitosa
                 var claims = new[] {
-                new Claim(ClaimTypes.NameIdentifier, username),
-                new Claim(ClaimTypes.Name, username),
-            };
+                    new Claim(ClaimTypes.NameIdentifier, username),
+                    new Claim(ClaimTypes.Name, username),
+                };
                 var identity = new ClaimsIdentity(claims, Scheme.Name);
                 var principal = new ClaimsPrincipal(identity);
                 var ticket = new AuthenticationTicket(principal, Scheme.Name);
@@ -124,5 +135,11 @@ namespace Seguridad.Autenticacion {
                 return AuthenticateResult.Fail("Authorization processing error");
             }
         }
+    
+    
+    
+    
+    
+    
     }
 }
