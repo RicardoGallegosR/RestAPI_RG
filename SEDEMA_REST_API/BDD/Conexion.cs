@@ -22,6 +22,10 @@ namespace SEDEMA_REST_API.BDD {
         public string GetConnectionStringMonitoreo() =>
             GetConnectionString("DB_MONITOREO_SERVER", "DB_MONITOREO_NAME", "DB_MONITOREO_USER", "DB_MONITOREO_PASS");
 
+
+        public string GetConnectionStringMorelos() =>
+            GetConnectionString("DB_MORELOS_SERVER", "DB_MORELOS_NAME", "DB_MORELOS_USER", "DB_MORELOS_PASS");
+
         private string GetConnectionString(string serverKey, string dbKey, string userKey, string passKey) {
             string server = Environment.GetEnvironmentVariable(serverKey);
             string database = Environment.GetEnvironmentVariable(dbKey);

@@ -14,121 +14,76 @@ namespace SEDEMA_REST_API.Controllers {
         public Consultas(spSivev spSivev) {
             _spSivev = spSivev;
         }
-        [HttpPost("Almacen/HologramasSet")]
+        [HttpGet("Placa")]
+        public IActionResult PlacaGet2() {
+            if (User.Identity != null && User.Identity.IsAuthenticated) {
+                return Redirect("https://www.sedema.cdmx.gob.mx/secretaria/estructura/199");
+            }
+            return Redirect("https://www.sedema.cdmx.gob.mx/secretaria/estructura/20");
+        }
+
+        [HttpGet("NIV")]
+        public IActionResult VINGet() {
+            if (User.Identity != null && User.Identity.IsAuthenticated) {
+                return Redirect("https://www.sedema.cdmx.gob.mx/secretaria/estructura/199");
+            }
+
+            return Redirect("https://www.sedema.cdmx.gob.mx/secretaria/estructura/20");
+        }
+
+
+
+        [HttpPost("Placa")]
         [Authorize]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<IActionResult> InsertarEnAlmacen(
-            [FromForm] int folioInicial,
-            [FromForm] int folioFinal,
-            [FromForm] int certificadoTipoId) {
-            if (certificadoTipoId < 12 && Val.Folios(folioInicial, folioFinal)) {
-                string resultadoJson = await _spSivev.SpCertificadosAlmacenSet(folioInicial, folioFinal, certificadoTipoId);
+        public async Task<IActionResult> PlacaGet([FromForm] string placa) {
+            if (string.IsNullOrWhiteSpace(placa))
+                return BadRequest(new { mensaje = "La placa no puede estar vacía." });
+            placa = placa.ToUpper();
+            if (!Val.Placa(placa))
+                return BadRequest(new { mensaje = "Placa inválida." });
+            string resultadoJson = await _spSivev.newSpSWUltimaVerificacionPlacaGet(placa);
+            if (string.IsNullOrWhiteSpace(resultadoJson) || resultadoJson == "[]")
+                return NotFound(new { mensaje = $"No se encontraron verificaciones para la placa {placa}." });
+            var resultado = JsonSerializer.Deserialize<List<ResultadoVerificacion>>(resultadoJson);
+            if (resultado == null || !resultado.Any())
+                return StatusCode(500, new { mensaje = "No se pudo procesar la respuesta del servidor." });
 
-                var resultado = JsonSerializer.Deserialize<List<ResultadoCertificado>>(resultadoJson);
-
-                if (resultado != null && resultado.Any()) {
-                    var item = resultado.First();
-
-                    if (item.MensajeId == 0)
-                        return Ok(resultado);
-                    return BadRequest(resultado);
-                }
-                return StatusCode(500, "No se obtuvo respuesta del procedimiento almacenado.");
-            }
-
-            return BadRequest("Datos inválidos. Verifique el rango de folios o el tipo de certificado.");
+            if (resultado.All(r => r.MensajeId == "200"))
+                return Ok(resultado);
+            var error = resultado.FirstOrDefault(r => r.MensajeId != "200");
+            if (error != null)
+                return BadRequest(new { mensaje = error.Mensaje });
+            return StatusCode(500, new { mensaje = "Error interno al procesar la solicitud." });
         }
 
 
 
-        [HttpPost("Almacen/DisponiblesGet")]
+
+
+        [HttpPost("NIV")]
         [Authorize]
         [Consumes("application/x-www-form-urlencoded")]
-        public async Task<IActionResult> ObtenerDisponiblesEnAlmacen([FromForm] int certificadoTipoId) {
-            if (certificadoTipoId >= 12) {
-                return BadRequest(new { mensaje = "Tipo de certificado inválido." });
-            }
+        public async Task<IActionResult> NIVGet([FromForm] string NIV) {
+            if (string.IsNullOrWhiteSpace(NIV))
+                return BadRequest(new { mensaje = "La placa no puede estar vacía." });
+            NIV = NIV.ToUpper();
+            if (!Val.Vin(NIV))
+                return BadRequest(new { mensaje = "NIV inválido." });
+            string resultadoJson = await _spSivev.newSpSWUltimaVerificacionVINGet(NIV);
+            if (string.IsNullOrWhiteSpace(resultadoJson) || resultadoJson == "[]")
+                return NotFound(new { mensaje = $"No se encontraron verificaciones para el NIV {NIV}." });
+            var resultado = JsonSerializer.Deserialize<List<ResultadoVerificacion>>(resultadoJson);
+            if (resultado == null || !resultado.Any())
+                return StatusCode(500, new { mensaje = "No se pudo procesar la respuesta del servidor." });
 
-            var json = await _spSivev.SpCertificadosDisponiblesGetJSON(certificadoTipoId);
-
-            if (string.IsNullOrWhiteSpace(json) || json == "[]") {
-                return NotFound(new { mensaje = "No se encontraron certificados disponibles para el tipo solicitado." });
-            }
-
-            return Content(json, "application/json");
+            if (resultado.All(r => r.MensajeId == "200"))
+                return Ok(resultado);
+            var error = resultado.FirstOrDefault(r => r.MensajeId != "200");
+            if (error != null)
+                return BadRequest(new { mensaje = error.Mensaje });
+            return StatusCode(500, new { mensaje = "Error interno al procesar la solicitud." });
         }
-
-
-        [HttpPost("Verificentros/Activos")]
-        [Authorize]
-        public async Task<IActionResult> VerificentrosActivosGet() {
-            var json = await _spSivev.SpVerificentrosActivosGetJSON();
-
-            if (string.IsNullOrWhiteSpace(json) || json == "[]") {
-                return NotFound("No se encontraron verificentros activos.");
-            }
-            return Content(json, "application/json");
-        }
-
-
-
-        [HttpPost("Almacen/Certificadotipo")]
-        [Authorize]
-        public async Task<IActionResult> CertificadosTiposGet() {
-            var json = await _spSivev.SpCertificadosTiposGetJSON();
-
-            if (string.IsNullOrWhiteSpace(json) || json == "[]") {
-                return NotFound("No se encontraron tipos de certificados.");
-            }
-            return Content(json, "application/json");
-        }
-
-
-
-        [HttpPost("Certificados/Alta")]
-        [Authorize]
-        [Consumes("application/x-www-form-urlencoded")]
-        public async Task<IActionResult> AltaCertificados(
-            [FromForm] short verificentroId,
-            [FromForm] byte tipoId,
-            [FromForm] int folioInicial,
-            [FromForm] int folioFinal) {
-
-            if (verificentroId > 0 && tipoId > 0 && folioInicial > 0 && folioFinal >= folioInicial) {
-
-                string resultadoJson = await _spSivev.SpAppAltaCertificados(verificentroId, tipoId, folioInicial, folioFinal);
-
-                if (!string.IsNullOrWhiteSpace(resultadoJson) && resultadoJson != "[]") {
-                    return Content(resultadoJson, "application/json");
-                }
-
-                return StatusCode(500, new { mensaje = "No se obtuvo respuesta del procedimiento almacenado." });
-            }
-
-            return BadRequest(new { mensaje = "Datos inválidos. Verifique el Verificentro, Tipo y Folios." });
-        }
-
-
-
-        [HttpPost("Certificados/FolioInicialSugerido")]
-        [Authorize]
-        [Consumes("application/x-www-form-urlencoded")]
-        public async Task<IActionResult> ObtenerFolioInicialSugerido([FromForm] int certificadoTipoId) {
-            if (certificadoTipoId <= 0) {
-                return BadRequest(new { mensaje = "Tipo de certificado inválido." });
-            }
-
-            string resultadoJson = await _spSivev.SpCertificadosTiposMaxGet(certificadoTipoId);
-
-            if (string.IsNullOrWhiteSpace(resultadoJson) || resultadoJson == "[]") {
-                return NotFound(new { mensaje = "No se encontró el folio sugerido para el tipo solicitado." });
-            }
-
-            return Content(resultadoJson, "application/json");
-        }
-
-
-
 
 
     }

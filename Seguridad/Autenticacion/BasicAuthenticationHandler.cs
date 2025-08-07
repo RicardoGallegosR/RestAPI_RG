@@ -48,7 +48,7 @@ namespace Seguridad.Autenticacion {
                 var username = credentials[0];
                 var password = credentials[1];
                 var ip = Context.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
-
+  
                 // 1. Validar si la IP está bloqueada
                 lock (_lock) {
                     if (_blockedIps.TryGetValue(ip, out var blockedUntil)) {
@@ -87,7 +87,11 @@ namespace Seguridad.Autenticacion {
                     bloqueadoHasta > DateTime.Now) {
 
                     _logger.LogWarning($"Usuario {username} bloqueado hasta {bloqueadoHasta}");
+
+                    //return AuthenticateResult.Fail("Usuario temporalmente bloqueado.");
+                    Context.Items["AuthError"] = $"Usuario {username} bloqueado hasta {bloqueadoHasta}";
                     return AuthenticateResult.Fail("Usuario temporalmente bloqueado.");
+
                 }
 
 
@@ -135,11 +139,11 @@ namespace Seguridad.Autenticacion {
                 return AuthenticateResult.Fail("Authorization processing error");
             }
         }
-    
-    
-    
-    
-    
-    
+
+
+       
+
+
+
     }
 }

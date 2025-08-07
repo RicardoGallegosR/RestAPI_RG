@@ -8,25 +8,23 @@ using System.Text.Json;
 
 
 namespace SEDEMA_REST_API.BDD {
-    public class ResultadoCertificado {
-        public int MensajeId { get; set; }
-        public string Mensaje { get; set; } = string.Empty;
+    public class ResultadoVerificacion {
+        public int Verificentro { get; set; }
+        public string Placa { get; set; }
+        public string NIV { get; set; }
+        public string Marca { get; set; }
+        public string Submarca { get; set; }
+        public int Modelo { get; set; }
+        public string Combustible { get; set; }
+        public string FechaVerificacion { get; set; }
+        public int Certificado { get; set; }
+        public string Holograma { get; set; }
+        public string Vigencia { get; set; }
+        public string MensajeId { get; set; }
+        public string Mensaje { get; set; }
+
     }
 
-
-    public class CertificadoTipo {
-        public int TipoId { get; set; }
-        public string Tipo { get; set; } = string.Empty;
-    }
-
-    public class CertificadoDisponible {
-        public int Remision { get; set; }
-        public int FolioInicialDisponible { get; set; }
-        public int FolioFinalDisponible { get; set; }
-        public int CantidadDisponible { get; set; }
-        public string Holograma { get; set; } = string.Empty;
-        public string FechaRegistro { get; set; } = string.Empty;
-    }
 
 
     public class spSivev {
@@ -38,34 +36,39 @@ namespace SEDEMA_REST_API.BDD {
             _conexion = conexion;
             _logger = logger;
         }
-        public async Task<string> SpCertificadosAlmacenSet(int folioInicial, int folioFinal, int certificadoTipoId) {
-            var resultados = new List<ResultadoCertificado>();
+        public async Task<string> newSpSWUltimaVerificacionPlacaGet(string vcPlacaId) {
+            var resultados = new List<ResultadoVerificacion>();
 
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("SivSpComun.SpCertificadosAlmacenSet", conn)) {
+            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringMorelos()))
+            using (SqlCommand cmd = new SqlCommand("LabCdMexico.newSpSWUltimaVerificacionGet", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@FolioInicial", folioInicial);
-                cmd.Parameters.AddWithValue("@FolioFinal", folioFinal);
-                cmd.Parameters.AddWithValue("@CertificadoTipoId", certificadoTipoId);
-
+                cmd.Parameters.AddWithValue("@vcPlacaId", vcPlacaId);
+                cmd.Parameters.AddWithValue("@vcVehiculoId", DBNull.Value);
                 try {
                     await conn.OpenAsync();
 
                     using (SqlDataReader reader = await cmd.ExecuteReaderAsync()) {
-                        if (await reader.ReadAsync()) {
-                            var mensajeIdOrdinal = reader.GetOrdinal("MensajeId");
-                            var mensajeOrdinal = reader.GetOrdinal("Mensaje");
-
-                            resultados.Add(new ResultadoCertificado {
-                                MensajeId = reader.IsDBNull(mensajeIdOrdinal) ? -1 : reader.GetInt32(mensajeIdOrdinal),
-                                Mensaje = reader.IsDBNull(mensajeOrdinal) ? "Sin mensaje" : reader.GetString(mensajeOrdinal)
+                        while (await reader.ReadAsync()) {
+                            resultados.Add(new ResultadoVerificacion {
+                                Verificentro = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Verificentro"))),
+                                Placa = reader.GetString(reader.GetOrdinal("Placa")),
+                                NIV = reader.GetString(reader.GetOrdinal("NIV")),
+                                Marca = reader.GetString(reader.GetOrdinal("Marca")),
+                                Submarca = reader.GetString(reader.GetOrdinal("Submarca")),
+                                Modelo = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Modelo"))),
+                                Combustible = reader.GetString(reader.GetOrdinal("Combustible")),
+                                FechaVerificacion = reader.GetString(reader.GetOrdinal("FechaVerificacion")),
+                                Certificado = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Certificado"))),
+                                Holograma = reader.GetString(reader.GetOrdinal("Holograma")),
+                                Vigencia = reader.GetString(reader.GetOrdinal("Vigencia")),
+                                MensajeId = "200",
+                                Mensaje = "Correcto"
                             });
                         }
-
                     }
                 } catch (Exception ex) {
-                    resultados.Add(new ResultadoCertificado {
-                        MensajeId = ex.HResult,
+                    resultados.Add(new ResultadoVerificacion {
+                        MensajeId = ex.HResult.ToString(),
                         Mensaje = ex.Message
                     });
                     ErrorProceso?.Invoke(new ErrorProcesoArgs(
@@ -76,207 +79,50 @@ namespace SEDEMA_REST_API.BDD {
                         ex.Message,
                         0
                     ));
+                    Console.WriteLine($"Error al ejecutar newSpSWUltimaVerificacionPlacaGet : {ex.Message}");
+                    _logger.LogWarning($"Error al ejecutar newSpSWUltimaVerificacionPlacaGet : {ex.Message}");
+                    return "[]";
                 }
             }
 
             return JsonSerializer.Serialize(resultados);
         }
 
-        public async Task<string> SpCertificadosDisponiblesGetJSON(int certificadoTipoId) {
-            var dt = new DataTable();
+        public async Task<string> newSpSWUltimaVerificacionVINGet(string vcVehiculoId) {
+            var resultados = new List<ResultadoVerificacion>();
 
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("SivSpComun.SpCertificadosDisponiblesGet", conn)) {
+            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringMorelos()))
+            using (SqlCommand cmd = new SqlCommand("LabCdMexico.newSpSWUltimaVerificacionGet", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@CertificadoTipoId", certificadoTipoId);
-
-                try {
-                    await conn.OpenAsync();
-                    using (var reader = await cmd.ExecuteReaderAsync()) {
-                        dt.Load(reader);
-                    }
-
-                    var jsonList = new List<Dictionary<string, object>>();
-                    foreach (DataRow row in dt.Rows) {
-                        var json = new Dictionary<string, object>();
-                        foreach (DataColumn col in dt.Columns) {
-                            json[col.ColumnName] = row[col];
-                        }
-                        jsonList.Add(json);
-                    }
-
-                    return JsonSerializer.Serialize(jsonList);
-                } catch (Exception ex) {
-                    ErrorProceso?.Invoke(new ErrorProcesoArgs(
-                        "SEDEMA_REST_API",
-                        nameof(spSivev),
-                        this.GetType().Name,
-                        ex.HResult,
-                        ex.Message,
-                        0
-                    ));
-                    _logger.LogWarning($"Error al ejecutar SpCertificadosDisponiblesGet: {ex.Message}");
-                    return "[]";
-                }
-            }
-        }
-
-        public async Task<string> SpAppAltaCertificados(short verificentroId, byte tipoId, int folioInicial, int folioFinal) {
-            var resultados = new List<ResultadoCertificado>();
-
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("Certificados.SpAppAltaCertificados", conn)) {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.AddWithValue("@siVerificentroId", verificentroId);
-                cmd.Parameters.AddWithValue("@tiTipoId", tipoId);
-                cmd.Parameters.AddWithValue("@iFolioInicial", folioInicial);
-                cmd.Parameters.AddWithValue("@iFolioFinal", folioFinal);
-
-                // Parámetros de salida
-                var mensajeParam = new SqlParameter("@vcMensaje", SqlDbType.NVarChar, 100) {
-                    Direction = ParameterDirection.Output
-                };
-                var resultadoParam = new SqlParameter("@iResultado", SqlDbType.Int) {
-                    Direction = ParameterDirection.Output
-                };
-
-                cmd.Parameters.Add(mensajeParam);
-                cmd.Parameters.Add(resultadoParam);
-
-                try {
-                    await conn.OpenAsync();
-                    await cmd.ExecuteNonQueryAsync();
-
-                    resultados.Add(new ResultadoCertificado {
-                        MensajeId = (int)(resultadoParam.Value ?? -1),
-                        Mensaje = mensajeParam.Value?.ToString() ?? "Sin mensaje"
-                    });
-
-                } catch (Exception ex) {
-                    resultados.Add(new ResultadoCertificado {
-                        MensajeId = ex.HResult,
-                        Mensaje = ex.Message
-                    });
-
-                    ErrorProceso?.Invoke(new ErrorProcesoArgs(
-                        "SEDEMA_REST_API",
-                        nameof(spSivev),
-                        this.GetType().Name,
-                        ex.HResult,
-                        ex.Message,
-                        0
-                    ));
-                }
-            }
-
-            return JsonSerializer.Serialize(resultados);
-        }
-
-        public async Task<string> SpVerificentrosActivosGetJSON() {
-            var dt = new DataTable();
-
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("Verificentros.VerificentrosGet", conn)) {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                try {
-                    await conn.OpenAsync();
-                    using (var reader = await cmd.ExecuteReaderAsync()) {
-                        dt.Load(reader);
-                    }
-
-                    var jsonList = new List<Dictionary<string, object>>();
-                    foreach (DataRow row in dt.Rows) {
-                        var json = new Dictionary<string, object>();
-                        foreach (DataColumn col in dt.Columns) {
-                            json[col.ColumnName] = row[col];
-                        }
-                        jsonList.Add(json);
-                    }
-
-                    return JsonSerializer.Serialize(jsonList);
-                } catch (Exception ex) {
-                    ErrorProceso?.Invoke(new ErrorProcesoArgs(
-                        "SEDEMA_REST_API",
-                        nameof(spSivev),
-                        this.GetType().Name,
-                        ex.HResult,
-                        ex.Message,
-                        0
-                    ));
-                    _logger.LogWarning($"Error al ejecutar SpVerificentrosActivosGetJSON: {ex.Message}");
-                    return "[]";
-                }
-            }
-        }
-
-
-
-        public async Task<string> SpCertificadosTiposGetJSON() {
-            var dt = new DataTable();
-
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("SivSpComun.SpCertificadosTiposGet", conn)) {
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                try {
-                    await conn.OpenAsync();
-                    using (var reader = await cmd.ExecuteReaderAsync()) {
-                        dt.Load(reader);
-                    }
-
-                    var jsonList = new List<Dictionary<string, object>>();
-                    foreach (DataRow row in dt.Rows) {
-                        var json = new Dictionary<string, object>();
-                        foreach (DataColumn col in dt.Columns) {
-                            json[col.ColumnName] = row[col];
-                        }
-                        jsonList.Add(json);
-                    }
-
-                    return JsonSerializer.Serialize(jsonList);
-                } catch (Exception ex) {
-                    ErrorProceso?.Invoke(new ErrorProcesoArgs(
-                        "SEDEMA_REST_API",
-                        nameof(spSivev),
-                        this.GetType().Name,
-                        ex.HResult,
-                        ex.Message,
-                        0
-                    ));
-                    _logger.LogWarning($"Error al ejecutar SpCertificadosTiposGet: {ex.Message}");
-                    return "[]";
-                }
-            }
-        }
-
-        public async Task<string> SpCertificadosTiposMaxGet(int certificadoTipoId) {
-            var resultados = new List<Dictionary<string, object>>();
-
-            using (SqlConnection conn = new SqlConnection(_conexion.GetConnectionStringSIVEV()))
-            using (SqlCommand cmd = new SqlCommand("SivSpComun.SpCertificadosTiposMaxGet", conn)) {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@CertificadoTipoId", certificadoTipoId);
-
+                cmd.Parameters.AddWithValue("@vcPlacaId", DBNull.Value);
+                cmd.Parameters.AddWithValue("@vcVehiculoId", vcVehiculoId);
                 try {
                     await conn.OpenAsync();
 
-                    using (var reader = await cmd.ExecuteReaderAsync()) {
+                    using (SqlDataReader reader = await cmd.ExecuteReaderAsync()) {
                         while (await reader.ReadAsync()) {
-                            var resultado = new Dictionary<string, object>();
-                            for (int i = 0; i < reader.FieldCount; i++) {
-                                resultado[reader.GetName(i)] = await reader.IsDBNullAsync(i) ? null : reader.GetValue(i);
-                            }
-                            resultados.Add(resultado);
+                            resultados.Add(new ResultadoVerificacion {
+                                Verificentro = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Verificentro"))),
+                                Placa = reader.GetString(reader.GetOrdinal("Placa")),
+                                NIV = reader.GetString(reader.GetOrdinal("NIV")),
+                                Marca = reader.GetString(reader.GetOrdinal("Marca")),
+                                Submarca = reader.GetString(reader.GetOrdinal("Submarca")),
+                                Modelo = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Modelo"))),
+                                Combustible = reader.GetString(reader.GetOrdinal("Combustible")),
+                                FechaVerificacion = reader.GetString(reader.GetOrdinal("FechaVerificacion")),
+                                Certificado = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("Certificado"))),
+                                Holograma = reader.GetString(reader.GetOrdinal("Holograma")),
+                                Vigencia = reader.GetString(reader.GetOrdinal("Vigencia")),
+                                MensajeId = "200",
+                                Mensaje = "Correcto"
+                            });
                         }
                     }
                 } catch (Exception ex) {
-                    resultados.Add(new Dictionary<string, object> {
-                { "MensajeId", ex.HResult },
-                { "Mensaje", ex.Message }
-            });
-
+                    resultados.Add(new ResultadoVerificacion {
+                        MensajeId = ex.HResult.ToString(),
+                        Mensaje = ex.Message
+                    });
                     ErrorProceso?.Invoke(new ErrorProcesoArgs(
                         "SEDEMA_REST_API",
                         nameof(spSivev),
@@ -285,12 +131,13 @@ namespace SEDEMA_REST_API.BDD {
                         ex.Message,
                         0
                     ));
+                    Console.WriteLine($"Error al ejecutar newSpSWUltimaVerificacionVINGet : {ex.Message}");
+                    _logger.LogWarning($"Error al ejecutar newSpSWUltimaVerificacionVINGet : {ex.Message}");
+                    return "[]";
                 }
             }
 
             return JsonSerializer.Serialize(resultados);
         }
-
-
     }
 }
